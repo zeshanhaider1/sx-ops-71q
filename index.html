@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Sehatra — Operations Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f7f6; --card:#ffffff; --ink:#111813; --muted:#5f6b63; --line:#e3e7e3;
+    --accent:#0d6b5f; --accent-soft:#e6f2ef;
+    --red:#b42318; --red-soft:#fdecea;
+    --amber:#b54708; --amber-soft:#fef3e6;
+    --green:#067647; --green-soft:#e7f6ee;
+    --grey:#5f6b63; --grey-soft:#eef1ef;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,20,.04), 0 8px 24px -12px rgba(16,24,20,.16);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 64px}
+
+  /* header */
+  header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin:8px 0 20px}
+  .brand{display:flex;gap:12px;align-items:center}
+  .mark{width:40px;height:40px;border-radius:12px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:18px;letter-spacing:.5px}
+  h1{font-size:22px;margin:0;letter-spacing:-.02em;font-weight:650}
+  .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .stamp{font-size:12px;color:var(--muted);text-align:right}
+  .stamp b{color:var(--ink);font-weight:600}
+  .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);
+       padding:7px 12px;border-radius:10px;font-size:13px;font-weight:550;text-decoration:none;cursor:pointer}
+  .btn:hover{border-color:#c9d1cb}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:#0a574e}
+
+  /* kpis */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+  .kpi .label{font-size:12px;color:var(--muted);font-weight:550;letter-spacing:.01em}
+  .kpi .value{font-size:26px;font-weight:650;letter-spacing:-.03em;margin-top:6px;font-variant-numeric:tabular-nums}
+  .kpi .value small{font-size:13px;font-weight:550;color:var(--muted);letter-spacing:0}
+  .kpi .note{font-size:12px;color:var(--muted);margin-top:4px}
+  .kpi.dark{background:#0f2b25;border-color:#0f2b25;color:#fff}
+  .kpi.dark .label,.kpi.dark .note{color:#b9cec7}
+  .kpi.dark .value small{color:#b9cec7}
+
+  /* cards */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:16px}
+  .card h2{font-size:15px;margin:0 0 2px;letter-spacing:-.01em;font-weight:650}
+  .card .hint{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+  .grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+
+  .chart{width:100%;height:300px}
+  .chart.sm{height:260px}
+
+  /* recovery list */
+  .rrow{display:grid;grid-template-columns:150px 1fr 92px;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+  .rrow:first-of-type{border-top:0}
+  .rname{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rtrack{height:9px;border-radius:99px;background:var(--grey-soft);overflow:hidden;display:flex}
+  .rpaid{background:var(--accent);height:100%}
+  .rdue{background:#e8b4ae;height:100%}
+  .rnum{font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+  .rnum b{color:var(--ink);font-weight:600}
+
+  /* chips */
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .chip{border:1px solid var(--line);background:#fff;color:var(--muted);font-size:12.5px;font-weight:550;
+        padding:6px 12px;border-radius:999px;cursor:pointer}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+
+  /* table */
+  table{width:100%;border-collapse:collapse}
+  thead th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;
+           text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  tbody td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:top}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:#fbfcfb}
+  .fac{font-weight:600}
+  .caseid{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .money{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .due{font-weight:650}
+  .pill{display:inline-block;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .pill.crit{background:var(--red-soft);color:var(--red)}
+  .pill.high{background:var(--amber-soft);color:var(--amber)}
+  .pill.norm{background:var(--grey-soft);color:var(--grey)}
+  .pill.hold{background:#eef1f7;color:#3a4a70}
+  .pill.done{background:var(--green-soft);color:var(--green)}
+  .pill.sched{background:var(--accent-soft);color:var(--accent)}
+  .next{color:var(--muted);font-size:12.5px;max-width:280px}
+
+  /* tasks */
+  .task{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line)}
+  .task:first-of-type{border-top:0}
+  .tnum{width:24px;height:24px;flex:0 0 24px;border-radius:8px;background:var(--grey-soft);color:var(--muted);
+        display:grid;place-items:center;font-size:12px;font-weight:650}
+  .task.done .tnum{background:var(--green-soft);color:var(--green)}
+  .task.sched .tnum{background:var(--accent-soft);color:var(--accent)}
+  .tbody{flex:1;min-width:0}
+  .ttitle{font-size:13.5px;font-weight:550}
+  .task.done .ttitle{color:var(--muted);text-decoration:line-through;text-decoration-color:#b9c3bb}
+  .tmeta{font-size:12px;color:var(--muted);margin-top:2px}
+
+  /* milestones */
+  .ms{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:11px 0;border-top:1px solid var(--line)}
+  .ms:first-of-type{border-top:0}
+  .msdate{font-size:12.5px;font-weight:650;color:var(--accent);font-variant-numeric:tabular-nums}
+  .mstitle{font-size:13.5px}
+  .msmeta{font-size:12px;color:var(--muted);margin-top:2px}
+
+  .foot{font-size:12px;color:var(--muted);margin-top:8px;text-align:center;line-height:1.7}
+  .err{background:var(--red-soft);color:var(--red);border:1px solid #f3c9c4;border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:16px}
+
+  @media (max-width:1000px){
+    .kpis{grid-template-columns:repeat(3,1fr)}
+    .grid2{grid-template-columns:1fr}
+  }
+  @media (max-width:720px){
+    .wrap{padding:16px 12px 48px}
+    h1{font-size:19px}
+    .kpis{grid-template-columns:repeat(2,1fr);gap:10px}
+    .kpi .value{font-size:22px}
+    .kpi.dark{grid-column:1 / -1}
+    .rrow{grid-template-columns:1fr 78px;row-gap:6px}
+    .rrow .rtrack{grid-column:1 / -1;order:3}
+    .card{padding:14px}
+    .chart{height:260px}
+    thead{display:none}
+    tbody tr{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:12px 0;border-bottom:1px solid var(--line)}
+    tbody td{border:0;padding:0}
+    tbody td.c-fac{grid-column:1}
+    tbody td.c-due{grid-column:2;grid-row:1}
+    tbody td.c-stage{grid-column:1 / -1;color:var(--muted);font-size:12.5px}
+    tbody td.c-next{grid-column:1 / -1;max-width:none}
+    tbody td.c-status{grid-column:1}
+    tbody td.c-dl{grid-column:2;text-align:right}
+    tbody td.hide-sm{display:none}
+    .ms{grid-template-columns:1fr;gap:2px}
+    .msdate{font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="mark">S</div>
+      <div>
+        <h1>Sehatra — Operations Dashboard</h1>
+        <div class="sub">PHC licensing &amp; compliance · Burewala, Punjab</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-end">
+      <div class="stamp">Last updated<br><b id="stamp">—</b></div>
+      <button class="btn" id="refresh" type="button">Refresh</button>
+      <a class="btn primary" id="sheetLink" href="#" target="_blank" rel="noopener">Open Sheet</a>
+    </div>
+  </header>
+
+  <div id="err" class="err" hidden></div>
+
+  <section class="kpis" id="kpis" aria-label="Key numbers"></section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Paisa kis case mein atka hai?</h2>
+      <p class="hint" id="debtHint">Baqaya raqam, facility ke hisaab se</p>
+      <div class="chart" id="debtChart" role="img" aria-label="Outstanding amount by facility"></div>
+    </section>
+    <section class="card">
+      <h2>Kitna purana paisa hai?</h2>
+      <p class="hint" id="ageHint">Baqaya, tawareekh ke hisaab se</p>
+      <div class="chart sm" id="ageChart" role="img" aria-label="Outstanding amount by ageing bucket"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Har case ki recovery</h2>
+    <p class="hint">Hara = mil gaya, laal = baqi. Kul <span id="recoveryTotal"></span></p>
+    <div id="recovery"></div>
+  </section>
+
+  <section class="card">
+    <h2>Case tracker</h2>
+    <p class="hint" id="trackerHint">Sab active cases</p>
+    <div class="chips" id="filters" role="group" aria-label="Filter cases">
+      <button class="chip" data-f="all" aria-pressed="true">Sab</button>
+      <button class="chip" data-f="recovery" aria-pressed="false">Recovery</button>
+      <button class="chip" data-f="delivery" aria-pressed="false">Delivery</button>
+      <button class="chip" data-f="hold" aria-pressed="false">Hold</button>
+    </div>
+    <table id="cases">
+      <thead>
+        <tr>
+          <th>Facility</th>
+          <th class="hide-sm">Stage</th>
+          <th>Next step</th>
+          <th style="text-align:right">Baqaya</th>
+          <th>Status</th>
+          <th>Deadline</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Aaj ke kaam</h2>
+      <p class="hint" id="taskHint"></p>
+      <div id="tasks"></div>
+    </section>
+    <section class="card">
+      <h2>20-din ka plan</h2>
+      <p class="hint">6 Nov – 5 Dec</p>
+      <div id="milestones"></div>
+    </section>
+  </div>
+
+  <p class="foot">
+    Data: Google Sheet “Sehatra Healthcare CRM &amp; Business OS”.<br>
+    Ye page us sheet ka mirror hai — har update sheet mein hota hai, phir yahan aa jata hai.
+  </p>
+</div>
+
+<script>
+const FMT = new Intl.NumberFormat('en-PK', {maximumFractionDigits:0});
+const money = n => 'PKR ' + FMT.format(Math.round(n||0));
+const short = n => n >= 1000000 ? (n/1000000).toFixed(1)+'M' : n >= 1000 ? Math.round(n/1000)+'k' : String(n);
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const STATUS_CLASS = {
+  'Hold':'hold', 'Critical':'crit', 'High':'high', 'Normal':'norm',
+  'Scheduled':'sched', 'Done':'done'
+};
+
+let DATA = null, FILTER = 'all';
+
+function kpiCard(k){
+  return `<div class="kpi ${k.dark?'dark':''}">
+    <div class="label">${esc(k.label)}</div>
+    <div class="value">${k.value}${k.unit?` <small>${esc(k.unit)}</small>`:''}</div>
+    <div class="note">${esc(k.note||'')}</div>
+  </div>`;
+}
+
+function render(summary, cases){
+  document.getElementById('stamp').textContent = summary.updatedLabel || '—';
+  document.getElementById('kpis').innerHTML = [
+    {label:'Total baqaya', value:money(summary.outstanding), note:`${summary.cases} active cases`, dark:true},
+    {label:'Mil chuka', value:money(summary.received), unit:`${summary.rate}%`, note:`${money(summary.agreed)} agreed`},
+    {label:'Active chase', value:money(summary.active), note:'Shalimar hold ke bagair'},
+    {label:'Hold par', value:money(summary.hold), note:'Shalimar — client ka irada nahi'},
+    {label:'Cash in hand', value:money(summary.cash), note:`Expenses ${money(summary.expenses)}`}
+  ].map(kpiCard).join('');
+
+  document.getElementById('recoveryTotal').textContent =
+    money(summary.received) + ' / ' + money(summary.agreed);
+
+  document.getElementById('recovery').innerHTML = cases.slice().sort((a,b)=>b.due-a.due).map(c=>{
+    const pct = c.agreed ? Math.round(c.paid/c.agreed*100) : 0;
+    return `<div class="rrow">
+      <div class="rname" title="${esc(c.name)}">${esc(c.short||c.name)}</div>
+      <div class="rtrack" title="${pct}% received">
+        <div class="rpaid" style="width:${pct}%"></div>
+        <div class="rdue" style="width:${100-pct}%"></div>
+      </div>
+      <div class="rnum"><b>${short(c.due)}</b> baqi</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTable(cases){
+  const rows = cases.filter(c => FILTER==='all' || c.kind===FILTER);
+  const tb = document.querySelector('#cases tbody');
+  if(!rows.length){ tb.innerHTML = '<tr><td colspan="6" style="color:#5f6b63">Is filter mein koi case nahi.</td></tr>'; return; }
+  tb.innerHTML = rows.map(c=>`
+    <tr>
+      <td class="c-fac"><div class="fac">${esc(c.name)}</div><div class="caseid">${esc(c.id)} · ${esc(c.city)}</div></td>
+      <td class="c-stage hide-sm">${esc(c.stage)}</td>
+      <td class="c-next next">${esc(c.next)}${c.days?` <span class="caseid">· ${c.days} din</span>`:''}</td>
+      <td class="c-due money due">${c.due?money(c.due):'—'}</td>
+      <td class="c-status"><span class="pill ${STATUS_CLASS[c.badge]||'norm'}">${esc(c.badge)}</span></td>
+      <td class="c-dl money" style="text-align:left;font-size:12.5px;color:#5f6b63">${esc(c.deadline||'—')}</td>
+    </tr>`).join('');
+}
+
+function renderTasks(tasks){
+  const done = tasks.filter(t=>t.state==='done').length;
+  document.getElementById('taskHint').textContent =
+    `${done}/${tasks.length} ho chuke · baqi kal ke visits`;
+  document.getElementById('tasks').innerHTML = tasks.map((t,i)=>`
+    <div class="task ${t.state}">
+      <div class="tnum">${t.state==='done'?'✓':i+1}</div>
+      <div class="tbody">
+        <div class="ttitle">${esc(t.title)}</div>
+        <div class="tmeta">${esc(t.meta)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderMilestones(ms){
+  document.getElementById('milestones').innerHTML = ms.map(m=>`
+    <div class="ms">
+      <div class="msdate">${esc(m.date)}</div>
+      <div>
+        <div class="mstitle">${esc(m.title)}</div>
+        <div class="msmeta">${esc(m.meta)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function charts(cases, aging){
+  const debtEl = document.getElementById('debtChart');
+  const debt = echarts.init(debtEl, null, {renderer:'svg'});
+  const sorted = cases.filter(c=>c.due>0).sort((a,b)=>a.due-b.due);
+  debt.setOption({
+    grid:{left:8,right:54,top:8,bottom:8,containLabel:true},
+    xAxis:{type:'value',splitLine:{lineStyle:{color:'#eef1ef'}},axisLabel:{color:'#5f6b63',fontSize:11,formatter:v=>short(v)},axisLine:{show:false},axisTick:{show:false}},
+    yAxis:{type:'category',data:sorted.map(c=>c.short),axisTick:{show:false},axisLine:{show:false},axisLabel:{color:'#111813',fontSize:12}},
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:p=>{
+      const c=sorted[p[0].dataIndex];return `<b>${esc(c.name)}</b><br>Baqaya: ${money(c.due)}<br>Mil chuka: ${money(c.paid)} / ${money(c.agreed)}`;}},
+    series:[{
+      type:'bar', data:sorted.map(c=>({value:c.due, itemStyle:{color: c.kind==='hold' ? '#98a2b3' : c.badge==='Critical' ? '#b42318' : '#0d6b5f', borderRadius:[0,4,4,0]}})),
+      barWidth:'62%',
+      label:{show:true,position:'right',formatter:p=>short(p.value),color:'#5f6b63',fontSize:11}
+    }]
+  });
+
+  const ageEl = document.getElementById('ageChart');
+  const age = echarts.init(ageEl, null, {renderer:'svg'});
+  const colors={'90+ din':'#b42318','16–30 din':'#b54708','0–15 din':'#0d6b5f'};
+  age.setOption({
+    grid:{left:8,right:16,top:24,bottom:8,containLabel:true},
+    xAxis:{type:'category',data:aging.map(a=>a.bucket),axisTick:{show:false},axisLine:{lineStyle:{color:'#e3e7e3'}},axisLabel:{color:'#5f6b63',fontSize:11.5}},
+    yAxis:{type:'value',splitLine:{lineStyle:{color:'#eef1ef'}},axisLabel:{color:'#5f6b63',fontSize:11,formatter:v=>short(v)},axisLine:{show:false}},
+    tooltip:{trigger:'axis',formatter:p=>`${p[0].name}: <b>${money(p[0].value)}</b>`},
+    series:[{type:'bar',barWidth:'46%',
+      data:aging.map(a=>({value:a.amount,itemStyle:{color:colors[a.bucket]||'#0d6b5f',borderRadius:[4,4,0,0]}})),
+      label:{show:true,position:'top',formatter:p=>short(p.value),color:'#5f6b63',fontSize:11}}]
+  });
+
+  window.addEventListener('resize',()=>{debt.resize();age.resize();});
+  window.__charts=[debt,age];
+}
+
+async function load(){
+  const err = document.getElementById('err');
+  try{
+    const res = await fetch('data.json?t=' + Date.now(), {cache:'no-store'});
+    if(!res.ok) throw new Error('data.json ' + res.status);
+    DATA = await res.json();
+    err.hidden = true;
+  }catch(e){
+    err.hidden = false;
+    err.textContent = 'Data load nahi hua. Page refresh karein; agar phir bhi na ho to data file update hona baqi hai.';
+    return;
+  }
+  document.getElementById('sheetLink').href = DATA.sheetUrl;
+  render(DATA.summary, DATA.cases);
+  renderTable(DATA.cases);
+  renderTasks(DATA.tasks);
+  renderMilestones(DATA.milestones);
+  charts(DATA.cases, DATA.aging);
+}
+
+document.getElementById('filters').addEventListener('click', e=>{
+  const b = e.target.closest('.chip'); if(!b) return;
+  FILTER = b.dataset.f;
+  [...document.querySelectorAll('#filters .chip')].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  renderTable(DATA.cases);
+});
+document.getElementById('refresh').addEventListener('click', ()=>{ location.reload(); });
+
+load();
+</script>
+</body>
+</html>
