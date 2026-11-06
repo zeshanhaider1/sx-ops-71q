@@ -1,11 +1,11 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Sehatra — Operations Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230d6b5f'/><text x='16' y='23' font-size='18' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'>S</text></svg>">
 <style>
   :root{
     --bg:#f6f7f6; --card:#ffffff; --ink:#111813; --muted:#5f6b63; --line:#e3e7e3;
@@ -57,8 +57,21 @@
   .card .hint{font-size:12.5px;color:var(--muted);margin:0 0 14px}
   .grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
 
-  .chart{width:100%;height:300px}
-  .chart.sm{height:260px}
+  /* horizontal bars */
+  .hbars{display:flex;flex-direction:column;gap:10px}
+  .hbar{display:grid;grid-template-columns:112px 1fr 58px;gap:10px;align-items:center}
+  .hbar .bl{font-size:12.5px;color:#26322b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hbar .bt{height:14px;background:#eef1ef;border-radius:6px;overflow:hidden}
+  .hbar .bf{height:100%;border-radius:6px;transition:width .5s ease}
+  .hbar .bv{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+
+  /* vertical bars */
+  .vbars{display:flex;align-items:flex-end;gap:18px;height:220px;padding-top:18px}
+  .vbar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:6px}
+  .vbar .vv{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .vbar .vfill{width:100%;max-width:64px;border-radius:8px 8px 0 0;min-height:3px;transition:height .5s ease}
+  .vlabels{display:flex;gap:18px;margin-top:8px}
+  .vlabels span{flex:1;text-align:center;font-size:12px;color:var(--muted)}
 
   /* recovery list */
   .rrow{display:grid;grid-template-columns:150px 1fr 92px;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
@@ -131,7 +144,8 @@
     .rrow{grid-template-columns:1fr 78px;row-gap:6px}
     .rrow .rtrack{grid-column:1 / -1;order:3}
     .card{padding:14px}
-    .chart{height:260px}
+    .hbar{grid-template-columns:92px 1fr 52px;gap:8px}
+    .hbar .bl{font-size:12px}
     thead{display:none}
     tbody tr{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:12px 0;border-bottom:1px solid var(--line)}
     tbody td{border:0;padding:0}
@@ -173,12 +187,12 @@
     <section class="card">
       <h2>Paisa kis case mein atka hai?</h2>
       <p class="hint" id="debtHint">Baqaya raqam, facility ke hisaab se</p>
-      <div class="chart" id="debtChart" role="img" aria-label="Outstanding amount by facility"></div>
+      <div class="hbars" id="debtChart" role="img" aria-label="Outstanding amount by facility"></div>
     </section>
     <section class="card">
       <h2>Kitna purana paisa hai?</h2>
       <p class="hint" id="ageHint">Baqaya, tawareekh ke hisaab se</p>
-      <div class="chart sm" id="ageChart" role="img" aria-label="Outstanding amount by ageing bucket"></div>
+      <div id="ageChart" role="img" aria-label="Outstanding amount by ageing bucket"></div>
     </section>
   </div>
 
@@ -319,38 +333,36 @@ function renderMilestones(ms){
 }
 
 function charts(cases, aging){
-  const debtEl = document.getElementById('debtChart');
-  const debt = echarts.init(debtEl, null, {renderer:'svg'});
-  const sorted = cases.filter(c=>c.due>0).sort((a,b)=>a.due-b.due);
-  debt.setOption({
-    grid:{left:8,right:54,top:8,bottom:8,containLabel:true},
-    xAxis:{type:'value',splitLine:{lineStyle:{color:'#eef1ef'}},axisLabel:{color:'#5f6b63',fontSize:11,formatter:v=>short(v)},axisLine:{show:false},axisTick:{show:false}},
-    yAxis:{type:'category',data:sorted.map(c=>c.short),axisTick:{show:false},axisLine:{show:false},axisLabel:{color:'#111813',fontSize:12}},
-    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:p=>{
-      const c=sorted[p[0].dataIndex];return `<b>${esc(c.name)}</b><br>Baqaya: ${money(c.due)}<br>Mil chuka: ${money(c.paid)} / ${money(c.agreed)}`;}},
-    series:[{
-      type:'bar', data:sorted.map(c=>({value:c.due, itemStyle:{color: c.kind==='hold' ? '#98a2b3' : c.badge==='Critical' ? '#b42318' : '#0d6b5f', borderRadius:[0,4,4,0]}})),
-      barWidth:'62%',
-      label:{show:true,position:'right',formatter:p=>short(p.value),color:'#5f6b63',fontSize:11}
-    }]
-  });
+  const sorted = cases.filter(c=>c.due>0).sort((a,b)=>b.due-a.due);
+  const max = Math.max(...sorted.map(c=>c.due), 1);
+  document.getElementById('debtChart').innerHTML = sorted.map(c=>{
+    const color = c.kind==='hold' ? '#98a2b3' : c.badge==='Critical' ? '#b42318' : '#0d6b5f';
+    const w = Math.max(2, Math.round(c.due/max*100));
+    return `<div class="hbar" title="${esc(c.name)} — ${money(c.due)} baqi, ${money(c.paid)} mil chuka">
+      <div class="bl">${esc(c.short||c.name)}</div>
+      <div class="bt"><div class="bf" style="width:${w}%;background:${color}"></div></div>
+      <div class="bv">${short(c.due)}</div>
+    </div>`;
+  }).join('');
+  if(sorted.length) document.getElementById('debtHint').textContent =
+    'Sab se bara: ' + sorted[0].name + ' — ' + money(sorted[0].due);
 
-  const ageEl = document.getElementById('ageChart');
-  const age = echarts.init(ageEl, null, {renderer:'svg'});
-  const colors={'90+ din':'#b42318','16–30 din':'#b54708','0–15 din':'#0d6b5f'};
-  age.setOption({
-    grid:{left:8,right:16,top:24,bottom:8,containLabel:true},
-    xAxis:{type:'category',data:aging.map(a=>a.bucket),axisTick:{show:false},axisLine:{lineStyle:{color:'#e3e7e3'}},axisLabel:{color:'#5f6b63',fontSize:11.5}},
-    yAxis:{type:'value',splitLine:{lineStyle:{color:'#eef1ef'}},axisLabel:{color:'#5f6b63',fontSize:11,formatter:v=>short(v)},axisLine:{show:false}},
-    tooltip:{trigger:'axis',formatter:p=>`${p[0].name}: <b>${money(p[0].value)}</b>`},
-    series:[{type:'bar',barWidth:'46%',
-      data:aging.map(a=>({value:a.amount,itemStyle:{color:colors[a.bucket]||'#0d6b5f',borderRadius:[4,4,0,0]}})),
-      label:{show:true,position:'top',formatter:p=>short(p.value),color:'#5f6b63',fontSize:11}}]
-  });
+  const ageMax = Math.max(...aging.map(a=>a.amount), 1);
+  const colors = {'90+ din':'#b42318','16–30 din':'#b54708','0–15 din':'#0d6b5f'};
+  document.getElementById('ageChart').innerHTML =
+    '<div class="vbars">' + aging.map(a=>`
+      <div class="vbar" title="${esc(a.bucket)} — ${money(a.amount)}">
+        <div class="vv">${short(a.amount)}</div>
+        <div class="vfill" style="height:${Math.max(3, Math.round(a.amount/ageMax*100))}%;background:${colors[a.bucket]||'#0d6b5f'}"></div>
+      </div>`).join('') + '</div>' +
+    '<div class="vlabels">' + aging.map(a=>`<span>${esc(a.bucket)}</span>`).join('') + '</div>';
 
-  window.addEventListener('resize',()=>{debt.resize();age.resize();});
-  window.__charts=[debt,age];
+  const old = aging.filter(a=>a.bucket.indexOf('90')>=0 || a.bucket.indexOf('16')>=0)
+                  .reduce((s,a)=>s+a.amount,0);
+  if(old) document.getElementById('ageHint').textContent =
+    money(old) + ' purana paisa (16 din se zyada) — yehi pehle wasool karna hai';
 }
+
 
 async function load(){
   const err = document.getElementById('err');
