@@ -1,23 +1,23 @@
 {
-  "updated": "2026-11-14T18:31:10+05:00",
+  "updated": "2026-11-19T15:35:00+05:00",
   "sheetUrl": "https://docs.google.com/spreadsheets/d/1B3rXOcbCGELHFmrPMkXbRwYy38TJdSq3ptR-fQ8ueas/edit",
   "summary": {
-    "updatedLabel": "14 Nov 2026, 6:31 pm",
+    "updatedLabel": "19 Nov 2026, 3:35 pm",
     "agreed": 383000,
-    "received": 137000,
-    "outstanding": 246000,
-    "active": 191000,
+    "received": 153000,
+    "outstanding": 230000,
+    "active": 200000,
     "hold": 30000,
     "cash": 30000,
     "expenses": 30880,
     "debt": 30000,
     "cases": 9,
-    "rate": 35.8
+    "rate": 39.9
   },
   "aging": [
     {
       "bucket": "0–15 din",
-      "amount": 206000
+      "amount": 190000
     },
     {
       "bucket": "16–30 din",
@@ -66,8 +66,8 @@
       "city": "Chakwal",
       "stage": "CPSAs winding up tonight (07 Nov). Submission & PKR 16,000 balance payment expected tomorrow (08 Nov)",
       "agreed": 25000,
-      "paid": 9000,
-      "due": 16000,
+      "paid": 25000,
+      "due": 0,
       "days": "",
       "badge": "Critical",
       "deadline": "8 Nov",
